@@ -29,14 +29,14 @@ func main() {
 func Router(cmd []string) {
 	switch cmd[0] {
 	case "login":
-		controller.Login()
+		controller.Login(cmd[1])
 	case "logout":
 		controller.Logout()
 	case "deposit":
-		controller.Deposit()
+		controller.Deposit(cmd[1])
 	case "transfer":
 		controller.Transfer()
 	case "withdraw":
-		controller.Withdraw()
+		controller.Withdraw(cmd[1])
 	}
 }
