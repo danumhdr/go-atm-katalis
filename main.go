@@ -35,7 +35,7 @@ func Router(cmd []string) {
 	case "deposit":
 		controller.Deposit(cmd[1])
 	case "transfer":
-		controller.Transfer()
+		controller.Transfer(cmd[1], cmd[2])
 	case "withdraw":
 		controller.Withdraw(cmd[1])
 	}

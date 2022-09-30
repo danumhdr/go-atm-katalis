@@ -36,11 +36,6 @@ func (transRepo *TransactionRepository) CheckDeposit(username string) model.Depo
 
 func (transRepo *TransactionRepository) UpdateDeposit(userDeposit model.DepositModel) model.DepositModel {
 	var userDeposits model.DepositModel
-	//check punya hutang/debts atau nggak
-
-	//kalau punya dia harus transfer ke yg diutangin ke yang paling banyak
-
-	//lihat sisa deposit, kalau masi ada baru update
 
 	getRecord := config.DB.Table("tbl_deposits").Where("user_deposit = ?", userDeposit.User_deposit).Update("total_deposit", userDeposit.Total_deposit)
 	if getRecord.Error != nil {
@@ -51,25 +46,66 @@ func (transRepo *TransactionRepository) UpdateDeposit(userDeposit model.DepositM
 	return userDeposits
 }
 
-func (transRepo *TransactionRepository) Transfer(transferFrom model.DepositModel, transferTo model.DepositModel) model.DepositModel {
-	//check deposit saldo
+func (transRepo *TransactionRepository) Transfer(transferFrom string, transferTo string, amount int) (model.DepositModel, model.DepositModel) {
 
-	//kalau deposit < transfer
+	userFromDeposits := transRepo.CheckDeposit(transferFrom)
+	userFromDeposits.Total_deposit -= amount
+	getTransferFrom := transRepo.UpdateDeposit(userFromDeposits)
 
-	//1 transfer all deposit ke transfer tujuan
+	userToDeposits := transRepo.CheckDeposit(transferTo)
+	userToDeposits.Total_deposit += amount
+	getTransferTo := transRepo.UpdateDeposit(userToDeposits)
 
-	//2 buat record debt untuk user yg melakukan transfer
-	return model.DepositModel{}
+	return getTransferFrom, getTransferTo
 }
 
-func (transRepo *TransactionRepository) CreateDebt(transferFrom model.DebtModel) ([]model.DebtModel, error) {
-	return []model.DebtModel{}, nil
+func (transRepo *TransactionRepository) CreateDebt(transferFrom model.DebtModel) (model.DebtModel, error) {
+	var userDebt model.DebtModel
+	getRecord := config.DB.Table("tbl_users_debt").Create(&transferFrom)
+	if getRecord.Error != nil {
+		log.Println(getRecord.Error)
+		return userDebt, getRecord.Error
+	}
+	return userDebt, nil
 }
 
-func (transRepo *TransactionRepository) UpdateDebt(transferFrom model.DebtModel) []model.DebtModel {
-	return []model.DebtModel{}
+func (transRepo *TransactionRepository) UpdateDebt(transferFrom model.DebtModel) error {
+	if transferFrom.Amount_debts == 0 {
+		return transRepo.DeleteDebt(transferFrom)
+	}
+	getRecord := config.DB.Table("tbl_users_debt").Where("user_debts = ? and user_debts_for = ?", transferFrom.User_debts, transferFrom.User_debts_for).Update("amount_debts", transferFrom.Amount_debts)
+	if getRecord.Error != nil {
+		log.Println(getRecord.Error)
+		return getRecord.Error
+	}
+	return nil
 }
 
-func (transRepo *TransactionRepository) CheckDebt(userDebt model.DebtModel) []model.DebtModel {
-	return []model.DebtModel{}
+func (transRepo *TransactionRepository) DeleteDebt(transferFrom model.DebtModel) error {
+	getRecord := config.DB.Table("tbl_users_debt").Where("user_debts = ? and user_debts_for = ?", transferFrom.User_debts, transferFrom.User_debts_for).Delete(&transferFrom)
+	if getRecord.Error != nil {
+		log.Println(getRecord.Error)
+		return getRecord.Error
+	}
+	return nil
+}
+
+func (transRepo *TransactionRepository) CheckAllDebt(username string) []model.DebtModel {
+	var userDebts []model.DebtModel
+	getRecord := config.DB.Table("tbl_users_debt").Where("user_debts = ? and amount_debts > 0", username).Order("amount_debts DESC").Scan(&userDebts)
+	if getRecord.Error != nil {
+		log.Println(getRecord.Error)
+		return userDebts
+	}
+	return userDebts
+}
+
+func (transRepo *TransactionRepository) CheckDetailDebt(username string, userDebtFor string) model.DebtModel {
+	var userDebts model.DebtModel
+	getRecord := config.DB.Table("tbl_users_debt").Where("user_debts = ? and user_debts_for = ?", username, userDebtFor).Order("amount_debts DESC").Scan(&userDebts)
+	if getRecord.Error != nil {
+		log.Println(getRecord.Error)
+		return userDebts
+	}
+	return userDebts
 }

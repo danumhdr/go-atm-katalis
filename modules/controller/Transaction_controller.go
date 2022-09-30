@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"fmt"
 	"go-atm/config"
 	"go-atm/modules/repository"
 	"go-atm/modules/service/implementation"
 	"strconv"
+	"strings"
 )
 
 var transRepo repository.TransactionInterfaceRepository
@@ -18,12 +18,14 @@ func Deposit(amount string) {
 	}
 }
 
-func Transfer() {
-	fmt.Println("Transfer")
-}
-
-func CheckAmount() {
-	fmt.Println("CheckAmount")
+func Transfer(transferTo string, amount string) {
+	username := config.Session.Name
+	if strings.ToLower(username) != strings.ToLower(transferTo) {
+		if username != "" {
+			amounts, _ := strconv.Atoi(amount)
+			implementation.NewTransactionService(transRepo).Transfer(username, transferTo, amounts)
+		}
+	}
 }
 
 func Withdraw(amount string) {
